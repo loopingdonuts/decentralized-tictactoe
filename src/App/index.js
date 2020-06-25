@@ -1,123 +1,42 @@
-import React, { useState } from 'react'
-import IPFS from 'ipfs'
-import OrbitDB from 'orbit-db'
-import getOrbitDB from './getOrbitDB'
+import React, { useState, useEffect } from 'react'
+import useOrbit from './useOrbit'
 
 import './style.css'
 
 function App () {
+  const [db, log, create, join] = useOrbit()
+
   const [joinInput, setJoinInput] = useState('')
   const [gameID, setGameID] = useState(null)
   const [gameCreated, setGameCreated] = useState(false)
 
-  const [log, setLog] = useState([])
-  const [db, setDb] = useState(null)
+  useEffect(() => {
+    if (db) setGameID(db.address.toString())
+  }, [db])
 
-  function join () {
-    setJoinInput('')
-
-    const initIPFSInstance = async () => {
-      return await IPFS.create({
-        repo: './tic-tac-toe-looping-donuts' + Date.now(),
-        EXPERIMENTAL: {
-          pubsub: true
-        },
-        config: {
-          Addresses: {
-            Swarm: [
-              '/dns4/wrtc-star1.par.dwebops.pub/tcp/443/wss/p2p-webrtc-star/'
-            ]
-          }
-        }
-      })
+  const joinGame = async () => {
+    if (!db) {
+      setJoinInput('')
+      join(joinInput)
     }
-
-    initIPFSInstance().then(async ipfs => {
-      const orbitdb = await OrbitDB.createInstance(ipfs)
-      const db = await orbitdb.open(joinInput)
-
-      setDb(db)
-      setGameID(db.address.toString())
-
-      db.add({
-        type: 'joined',
-        data: 'peer'
-      })
-
-      db.events.on('replicated', () => {
-        const result = db
-          .iterator({ limit: -1 })
-          .collect()
-          .map(e => e.payload.value)
-        setLog(result)
-      })
-
-      db.events.on('write', (address, entry, heads) => {
-        setLog(log => [...log, entry.payload.value])
-      })
-    })
   }
 
-  function create () {
-    setGameCreated(true)
-
-    const initIPFSInstance = async () => {
-      return await IPFS.create({
-        repo: './tic-tac-toe-looping-donuts' + Date.now(),
-        EXPERIMENTAL: {
-          pubsub: true
-        },
-        config: {
-          Addresses: {
-            Swarm: [
-              '/dns4/wrtc-star1.par.dwebops.pub/tcp/443/wss/p2p-webrtc-star/'
-            ]
-          }
-        }
-      })
+  const createGame = async () => {
+    if (!db) {
+      setGameCreated(true)
+      create()
     }
-
-    initIPFSInstance().then(async ipfs => {
-      const orbitdb = await OrbitDB.createInstance(ipfs)
-      const db = await orbitdb.create('first-database', 'eventlog', {
-        accessController: {
-          write: ['*']
-        },
-        overwrite: true,
-        replicate: true
-      })
-
-      setDb(db)
-      setGameID(db.address.toString())
-
-      db.add({
-        type: 'joined',
-        data: 'host'
-      })
-
-      db.events.on('replicated', () => {
-        const result = db
-          .iterator({ limit: -1 })
-          .collect()
-          .map(e => e.payload.value)
-        setLog(result)
-      })
-
-      db.events.on('write', (address, entry, heads) => {
-        setLog(log => [...log, entry.payload.value])
-      })
-    })
   }
 
   return (
     <div className='App'>
       <header className='App-header'>
         <h1>Tic tac toe</h1>
-        {gameID == null && !gameCreated ? (
+        {gameID === null && !gameCreated ? (
           <React.Fragment>
             <p>
               Generate a code to start a game{' '}
-              <button onClick={() => create()}>Generate code</button>
+              <button onClick={() => createGame()}>Generate code</button>
             </p>
             <p>
               Or join a game{' '}
@@ -126,8 +45,8 @@ function App () {
                 onChange={e => setJoinInput(e.target.value)}
                 value={joinInput}
               />
-              {joinInput != '' && (
-                <button onClick={() => joinInput != '' && join()}>
+              {joinInput !== '' && (
+                <button onClick={() => joinInput !== '' && joinGame()}>
                   Join game
                 </button>
               )}
