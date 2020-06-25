@@ -1,5 +1,5 @@
-# libp2p-tictactoe
-Tic tac toe made with libp2p.
+# orbitdb-tictactoe
+Tic tac toe made with orbitdb.
 
 ## Installation
 TBD
