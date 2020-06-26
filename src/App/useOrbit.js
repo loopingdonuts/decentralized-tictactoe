@@ -1,83 +1,110 @@
-import { useState } from 'react'
-import IPFS from 'ipfs'
-import OrbitDB from 'orbit-db'
+import { useState } from "react";
+import IPFS from "ipfs";
+import OrbitDB from "orbit-db";
+import { resolve } from "ipfs/src/core/components";
 
-export default function useOrbitDB () {
-  const [db, setDB] = useState(null)
-  const [log, setLog] = useState([])
+export default function useOrbitDB() {
+  const [db, setDB] = useState(null);
+  const [log, setLog] = useState([]);
 
   const getOrbit = async () => {
     const ipfs = await IPFS.create({
-      repo: './tic-tac-toe-looping-donuts' + Date.now(),
+      repo: "./tic-tac-toe-looping-donuts" + Date.now(),
       EXPERIMENTAL: {
-        pubsub: true
+        pubsub: true,
       },
       config: {
         Addresses: {
           Swarm: [
-            '/dns4/wrtc-star1.par.dwebops.pub/tcp/443/wss/p2p-webrtc-star/'
-          ]
-        }
-      }
-    })
+            "/dns4/wrtc-star1.par.dwebops.pub/tcp/443/wss/p2p-webrtc-star/",
+          ],
+        },
+      },
+    });
 
-    return OrbitDB.createInstance(ipfs)
-  }
+    return OrbitDB.createInstance(ipfs);
+  };
 
-  const create = async () => {
-    const orbit = await getOrbit()
+  const create = async (name) => {
+    const orbit = await getOrbit();
 
-    const db = await orbit.create('first-database', 'eventlog', {
+    const db = await orbit.create("first-database", "eventlog", {
       accessController: {
-        write: ['*']
+        write: ["*"],
       },
       overwrite: true,
-      replicate: true
-    })
+      replicate: true,
+    });
 
-    setDB(db)
+    setDB(db);
 
-    db.add({
-      type: 'joined',
-      data: 'host'
-    })
+    return new Promise((resolve, reject) => {
+      db.add({
+        type: "joined",
+        data: {
+          type: "host",
+          name: name,
+        },
+      });
 
-    db.events.on('replicated', () => {
-      const result = db
-        .iterator({ limit: -1 })
-        .collect()
-        .map(e => e.payload.value)
-      setLog(result)
-    })
+      db.events.on("replicated", () => {
+        const result = db
+          .iterator({ limit: -1 })
+          .collect()
+          .map((e) => e.payload.value);
+        setLog(result);
 
-    db.events.on('write', (address, entry, heads) => {
-      setLog(log => [...log, entry.payload.value])
-    })
-  }
+        if (result.length == 2) {
+          resolve();
+        }
+      });
 
-  const join = async id => {
-    const orbit = await getOrbit()
+      db.events.on("write", (address, entry, heads) => {
+        setLog((log) => [...log, entry.payload.value]);
+      });
+    });
+  };
 
-    const db = await orbit.open(id)
-    setDB(db)
+  const join = async (name, id) => {
+    const orbit = await getOrbit();
 
-    db.add({
-      type: 'joined',
-      data: 'peer'
-    })
+    const db = await orbit.open(id);
+    setDB(db);
 
-    db.events.on('replicated', () => {
-      const result = db
-        .iterator({ limit: -1 })
-        .collect()
-        .map(e => e.payload.value)
-      setLog(result)
-    })
+    return new Promise((resolve, reject) => {
+      db.events.on("write", (address, entry, heads) => {
+        setLog((log) => [...log, entry.payload.value]);
+      });
 
-    db.events.on('write', (address, entry, heads) => {
-      setLog(log => [...log, entry.payload.value])
-    })
-  }
+      db.events.on("replicated", () => {
+        const result = db
+          .iterator({ limit: -1 })
+          .collect()
+          .map((e) => e.payload.value);
+        setLog(result);
 
-  return [db, log, create, join]
+        const isInGame = result.find(
+          (x) =>
+            x.type == "joined" && x.data.type == "peer" && x.data.name == name
+        );
+
+        const gameFull = result.filter((x) => x.type == "joined").length == 2;
+
+        if (!isInGame && !gameFull) {
+          db.add({
+            type: "joined",
+            data: {
+              type: "peer",
+              name: name,
+            },
+          });
+          resolve();
+        } else {
+          reject(new Error("Game full"));
+        }
+      });
+    });
+  };
+
+  return [db, log, create, join];
 }
