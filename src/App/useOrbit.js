@@ -1,7 +1,6 @@
 import { useState } from "react";
 import IPFS from "ipfs";
 import OrbitDB from "orbit-db";
-import { resolve } from "ipfs/src/core/components";
 
 export default function useOrbitDB() {
   const [db, setDB] = useState(null);
