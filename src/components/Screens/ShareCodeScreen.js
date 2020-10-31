@@ -1,16 +1,24 @@
 import React from "react";
-import LoadingScreen from "./LoadingScreen";
+import Tooltip from "react-tooltip-lite";
+import copy from "copy-to-clipboard";
+import Button from "../Button";
+import CenterStatus from "../CenterStatus";
 
 export default function ShareCodeScreen({ code }) {
   return (
     <div>
       {code ? (
-        <React.Fragment>
+        <CenterStatus>
           <strong>Share this code</strong>
           <p>{code}</p>
-        </React.Fragment>
+          <Tooltip content="Code copied!" direction="down" eventToggle="onClick">
+            <Button onClick={() => copy(code)}>Copy to clipboard</Button>
+          </Tooltip>
+        </CenterStatus>
       ) : (
-        <LoadingScreen message="Generating code..." />
+        <CenterStatus>
+          <p>Generating code...</p>
+        </CenterStatus>
       )}
     </div>
   );

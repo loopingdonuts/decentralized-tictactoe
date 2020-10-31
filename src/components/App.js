@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import styled from "styled-components";
 import useOrbit from "../hooks/useOrbit";
+import CenterStatus from "./CenterStatus";
 import GameScreen from "./Screens/GameScreen";
-import LoadingScreen from "./Screens/LoadingScreen";
 import ShareCodeScreen from "./Screens/ShareCodeScreen";
 
 import StartScreen from "./Screens/StartScreen";
@@ -22,6 +22,7 @@ function App() {
       join(name, id)
         .then(() => setGameHasStarted(true))
         .catch(e => {
+          console.log(e);
           setGameIsFull(true);
         });
     }
@@ -31,7 +32,11 @@ function App() {
     if (!db && name.length > 0) {
       setIsHost(true);
       setGamePastLobby(true);
-      create(name).then(() => setGameHasStarted(true));
+      create(name)
+        .then(() => setGameHasStarted(true))
+        .catch(e => {
+          console.log(e);
+        });
     }
   };
 
@@ -47,9 +52,9 @@ function App() {
 
           <p>
             This game uses a database called <a href="https://orbitdb.org/">OrbitDB</a> that is
-            built on <a href="https://ipfs.org">IPFS</a>. IFPS a "A peer-to-peer hypermedia
-            protocol". It allows this game to communicate direcly to another computer instead of
-            using a server as backend.
+            built on <a href="https://ipfs.org">IPFS</a> as the communication medium. IFPS is a "A
+            peer-to-peer hypermedia protocol" that allows this game to communicate direcly to
+            another computer instead of using a server as backend.
           </p>
 
           <p>
@@ -66,7 +71,9 @@ function App() {
         <Main>
           {!gamePastLobby && !gameHasStarted && <StartScreen onCreate={onCreate} onJoin={onJoin} />}
           {gamePastLobby && !isHost && !gameHasStarted && !gameIsFull && (
-            <LoadingScreen message="Loading..." />
+            <CenterStatus>
+              <p>Loading...</p>
+            </CenterStatus>
           )}
           {isHost && !gameHasStarted && <ShareCodeScreen code={db && db.address.toString()} />}
 
@@ -82,7 +89,7 @@ function App() {
 }
 
 const StyledApp = styled.div`
-  background: #ededed;
+  background: #f2f2f2;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -92,11 +99,12 @@ const StyledApp = styled.div`
 const Container = styled.div`
   margin: 128px 32px;
   width: 60%;
+  max-width: 900px;
 `;
 
 const Header = styled.header`
   & h1 {
-    font-size: 2rem;
+    font-size: 2.4rem;
     margin-bottom: 32px;
   }
 
