@@ -1,5 +1,5 @@
-# orbitdb-tictactoe
-Tic tac toe made with orbitdb
+# OrbitDB Tic-tac-toe
+Tic tac toe made with orbitdb. Play a game [here](https://orbitdb-tictactoe.onrender.com/) 
 
 ## Installation
 ```
